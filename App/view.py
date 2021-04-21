@@ -1,8 +1,10 @@
 ﻿import config as cf
 import sys
+import time
 import controller
 from DISClib.ADT import list as lt
 from DISClib.ADT import map as mp
+from DISClib.ADT import orderedmap as om
 assert cf
 
 musicFile = 'context_content_features-small.csv'
@@ -27,31 +29,25 @@ while True:
     printMenu()
     inputs = input('Seleccione una opción para continuar\n')
     if int(inputs[0]) == 1:
-        print("Cargando información de los archivos ....")
+        print("\nCargando información de los archivos ....")
+
+        ini = time.time()
         cont = controller.init()
         controller.loadData(cont, musicFile)
+        fini = time.time()
 
-        print(mp.size(cont['songs']), mp.size(cont['artistID']), mp.size(cont['trackID']))
+        print('\nTiempo de carga:', round((fini-ini), 3), 'segundos.')
+        print('Se cargaron', om.size(cont['songs']), 'elementos.')
+        print('Se cargaron', mp.size(cont['artistID']), 'artistas únicos.')
+        print('Se cargaron', mp.size(cont['trackID']), 'canciones únicas.\n')
 
     elif int(inputs[0]) == 2:
-        pass
+        try:
+            tempo = controller.getcharXrang(cont)
+            print('\nLa altura del árbol es de', om.height(tempo), 'niveles.')
+            print('El árbol tiene', om.size(tempo), 'elementos.\n')
+        except:
+            print('\nSe ha producido un error.\n')
 
     else:
         sys.exit(0)
-sys.exit(0)
-
-import config as cf
-import model
-import csv
-
-def init():
-    analyzer = model.newAnalyzer()
-    return analyzer
-
-def loadData(analyzer, musicFile):
-    musicFile = cf.data_dir + musicFile
-    inputFile = csv.DictReader(open(musicFile, encoding='utf-8'), delimiter=',')
-
-    for x in inputFile:
-        model.addSong(analyzer, x)
-    return analyzer

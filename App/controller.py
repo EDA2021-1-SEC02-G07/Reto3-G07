@@ -13,3 +13,6 @@ def loadData(analyzer, musicFile):
     for x in inputFile:
         model.addSong(analyzer, x)
     return analyzer
+
+def getcharXrang(cont):
+    return model.charXrang(cont)
