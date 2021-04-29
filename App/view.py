@@ -37,7 +37,7 @@ while True:
         fini = time.time()
 
         print('\nTiempo de carga:', round((fini-ini), 3), 'segundos.')
-        print('Se cargaron', om.size(cont['songs']), 'elementos.')
+        print('Se cargaron', lt.size(cont['lstSongs']), 'elementos.')
         print('Se cargaron', mp.size(cont['artistID']), 'artistas únicos.')
         print('Se cargaron', mp.size(cont['trackID']), 'canciones únicas.\n')
 
