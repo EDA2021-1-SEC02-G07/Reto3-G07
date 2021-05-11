@@ -75,7 +75,7 @@ while True:
 
     elif int(inputs[0]) == 2:
         printChar()
-        char = int(input('Opción de la característica que desea consultar: '))
+        char = int(input('\nOpción de la característica que desea consultar: '))
         ranlo = float(input('Valor inferior del rango en el que desea buscar: '))
         ranhi = float(input('Valor superior del rango en el que desea buscar: '))
         try:
