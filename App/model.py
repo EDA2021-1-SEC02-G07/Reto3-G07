@@ -9,7 +9,8 @@ from DISClib.Algorithms.Sorting import shellsort as sa
 import datetime
 from DISClib.DataStructures import listiterator as it
 assert cf
-
+import random
+import operator
 
 #CATÁLOGO#
 def newAnalyzer():
@@ -30,6 +31,9 @@ def newAnalyzer():
     analyzer['acousticness'] = om.newMap(omaptype='BST', comparefunction=cmpINTtree)
     analyzer['energy'] = om.newMap(omaptype='RBT', comparefunction=cmpINTtree)
     analyzer['horas'] = om.newMap(omaptype='RBT', comparefunction=cmpHRtree)
+    analyzer['etiquetas'] = om.newMap(omaptype='RBT', comparefunction=cmpHRtree)
+    analyzer['tagsSong'] = om.newMap(omaptype='RBT', comparefunction=cmpHRtree)
+
     
 
     return analyzer
@@ -96,10 +100,45 @@ def addSong(analyzer, song):
     elif not om.contains(analyzer['energy'], float(song['energy'])):
         om.put(analyzer['energy'], float(song['energy']), lt.newList(cmpfunction=cmpUidList))
         lt.addLast(me.getValue(om.get(analyzer['energy'], float(song['energy']))), (int(song['id']), song['artist_id'], song['track_id']))
-    #HORAS#
-    #updateHoras(analyzer['horas'], song)
     
     return analyzer
+
+def addUser(analyzer, song):
+    horas = song['created_at']
+    horas = horas[11:16]
+    #hora hasta min 16 otro [:]
+    
+    etiqueta = song['hashtag']
+
+    if om.contains(analyzer['horas'], horas):
+        lt.addLast(me.getValue(om.get(analyzer['horas'],horas )), (song['track_id'],song['hashtag']))
+    elif not om.contains(analyzer['horas'], horas):
+        om.put(analyzer['horas'], horas, lt.newList(cmpfunction=cmpUidList))
+        lt.addLast(me.getValue(om.get(analyzer['horas'], horas)), (song['track_id'], song['hashtag']))
+
+    cancion = song['track_id']
+    if om.contains(analyzer['tagsSong'],cancion ):
+        lt.addLast(me.getValue(om.get(analyzer['tagsSong'], cancion)), etiqueta)    
+    elif not om.contains(analyzer['tagsSong'], cancion):
+        om.put(analyzer['tagsSong'], cancion, lt.newList(cmpfunction=cmpUidList))    
+        lt.addLast(me.getValue(om.get(analyzer['tagsSong'], cancion)), etiqueta)
+
+
+def addTag(analyzer, etiqueta):
+    
+    avg = 'vader_avg'
+    tag = etiqueta['hashtag']
+    if  (etiqueta[avg]=='')==False:
+        
+        if om.contains(analyzer['etiquetas'], tag): 
+            lt.addLast(me.getValue(om.get(analyzer['etiquetas'], tag)), (float(etiqueta['vader_avg'])))    
+        elif not om.contains(analyzer['etiquetas'], tag):
+            om.put(analyzer['etiquetas'], tag, lt.newList(cmpfunction=cmpUidList))    
+            lt.addLast(me.getValue(om.get(analyzer['etiquetas'], tag)), (float(etiqueta['vader_avg'])))   
+    
+    
+    
+    
 
 def updateHoras(map, song):
     horaRep = song['created_at']
@@ -199,7 +238,121 @@ def Ngenero(generos):
     nuevoG = (nombre, inf, sup)
     generos.remove(10)
     return nuevoG
-#FUNCIONES DE COMPARACIÓN#
+
+def Mestudiar(cont, instmin, instmax, tempmin, tempmax):
+    tempo = om.keys(cont['tempo'], tempmin, tempmax)
+    lista = lt.newList()
+    final = {}
+    contador = 0
+    #recorre el tempo que tiene solo el rango, busca que tengan el inst requerido
+    for x in lt.iterator(tempo): 
+        r = om.get(cont['tempo'], x)
+        valor = r['value']
+        real = valor['first']['info']
+       
+        for i in real:
+           
+            if type(i)==str:
+                pos = lt.isPresent(cont['lstSongs'],i )
+                cancion = lt.getElement(cont['lstSongs'], pos)
+                inst = cancion['instrumentalness']
+               
+                if float(inst)>= instmin and float(inst)<= instmax:
+                    final[i] = (inst, x )
+                    contador+= 1
+                    lt.addLast(lista, i)
+    #recorre genera 5 numeros aletorios y retorna la info de esas canciones
+    print('Total de canciones únicas: ', contador)
+    contador = 0
+    lista_numeros = []
+    while contador<5:
+        numero = random.randint(0,lt.size(lista))
+        if numero not in lista_numeros:
+            contador+=1
+            lista_numeros.append(numero)
+            cancion = lt.getElement(lista, numero)
+            info = final[cancion]
+            print('\n Track', contador, ': ', cancion, 'con una instumentalidad de ',info[0], 'y un tempo de ', info[1] )
+
+        
+def GenxTiempo(cont, hmin, hmax):
+
+    #da el promedio de sentimiento en las canciones 
+
+    #entrada de canciones por hora de escucha
+    canciones_h = om.values(cont['horas'], hmin, hmax)
+    dicc = {'R & B':0,'Reggae':0,'Down-tempo':0,'Hip-Hop':0, 'Chill-Out': 0,'Pop':0, 'Rock':0, 'Jazz and Funk':0 , 'Metal':0}
+    dicc2 = {'R & B':[],'Reggae':[],'Down-tempo':[],'Hip-Hop':[], 'Chill-Out': [],'Pop':[], 'Rock':[], 'Jazz and Funk':[] , 'Metal':[]}
+    for i in lt.iterator(canciones_h):
+        for r in lt.iterator(i):    
+            generos = generosS(cont, r[0])
+            for i in generos:
+                dicc[i]+= 1
+                dicc2[i]= dicc2[i]+ [r[0]]
+    print('\n Géneros ordenados por número de reproducciones\n')
+       
+    contador = 1
+    dicc_sort = sorted(dicc.items(), key=operator.itemgetter(1), reverse=True)
+    for x in enumerate(dicc_sort):
+        print('Top ', contador, ': ', x[1][0], ' con ', dicc[x[1][0]], 'reps.')
+        contador+=1
+     
+    print('\nEl género más escuchado es ', dicc_sort[0][0], ' con ', dicc_sort[0][1], 'reproducciones\n')
+    print('------------------------',dicc_sort[0][0], 'analisis de sentimiento--------------------------' )
+
+    dit_av = {}
+    dit_list={}
+    unique = 0
+    for cancion in dicc2[dicc_sort[0][0]]:
+        et = om.get(cont['tagsSong'], cancion)
+        eti = et['value']['first']['info']
+        eti = eti.lower()
+        if cancion not in dit_av and om.get(cont['etiquetas'],eti):
+            #contador, suma, lista
+            avr = om.get(cont['etiquetas'], eti)
+            avr = avr['value']['first']['info']
+            dit_av[cancion]= float(avr)
+            dit_list[cancion]= [eti]
+            contador+=1
+        if cancion in dit_av and om.get(cont['etiquetas'],eti):
+            avr = om.get(cont['etiquetas'], eti)
+            avr = avr['value']['first']['info']
+            dit_av[cancion] += float(avr)
+            dit_list[cancion]+= [eti]
+    
+    for i in dit_av:
+        num = len(dit_list[i])
+        dit_av[i]= dit_av[i]/num
+    
+    contador = 1
+    dicc_sort = sorted(dit_av.items(), key=operator.itemgetter(1), reverse=True)
+
+    for x in dicc_sort:
+     
+        print('Top ', contador, ' track: ', x[0], ' con ',len(dit_list[x[0]]), ' etiquetas y un VADER =  ',x[1])
+        contador+=1
+        if contador>10:
+            break
+
+ 
+def generosS(cont, cancion):
+    tempo = cont['lstSongs']
+    pos = lt.isPresent(tempo, cancion)
+    tempo = lt.getElement(tempo, pos)
+    tempo = tempo['tempo']
+    dicc ={(60,80):'R & B', (60,90):'Reggae', (879,100):'Down-tempo', (85,115):'Hip-Hop', (90,120):'Chill-Out', (100,130):'Pop', (110,140):'Rock', (120,125):'Jazz and Funk', (100,160):'Metal'}
+    lista = []
+    for i in dicc:
+        mini = i[0]
+        maxi = i[1]
+        if float(tempo)>=mini and float(tempo)<=maxi:
+            lista = lista +[dicc[i]]
+    return lista
+
+    
+    
+    
+#FUNCIONES DE COMPARACIÓN
 
 def cmpINTtree(int1, int2):
     if float(int1) == float(int2):

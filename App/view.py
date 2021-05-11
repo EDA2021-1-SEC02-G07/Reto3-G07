@@ -3,11 +3,18 @@ import sys
 import time
 import controller
 from DISClib.ADT import list as lt
+from DISClib.ADT import config as cf
+import sys
+import time
+import controller
+from DISClib.ADT import list as lt
 from DISClib.ADT import map as mp
 from DISClib.ADT import orderedmap as om
 assert cf
 
 musicFile = 'context_content_features-small.csv'
+userFile = 'user_track_hashtag_timestamp-small.csv'
+sentFile = 'sentiment_values.csv'
 cont = None
 
 def printMenu():
@@ -36,6 +43,7 @@ def printGeneros():
     print('7. R&B: 60-80bpm.')
     print('8. Rock: 110-140bpm.')
     print('9. Metal: 100-160bpm.')
+
     print('10. Crear nuevo género.')
 
 def printChar():
@@ -65,7 +73,7 @@ while True:
 
         ini = time.time()
         cont = controller.init()
-        controller.loadData(cont, musicFile)
+        controller.loadData(cont, musicFile, userFile, sentFile)
         fini = time.time()
 
         print('\nTiempo de carga:', round((fini-ini), 3), 'segundos.')
@@ -75,7 +83,7 @@ while True:
 
     elif int(inputs[0]) == 2:
         printChar()
-        char = int(input('\nOpción de la característica que desea consultar: '))
+        char = int(input('Opción de la característica que desea consultar: '))
         ranlo = float(input('Valor inferior del rango en el que desea buscar: '))
         ranhi = float(input('Valor superior del rango en el que desea buscar: '))
         try:
@@ -101,7 +109,37 @@ while True:
             print('\nSe ha producido un error.\n')
 
     elif int(inputs[0]) == 4:
-        pass
+        print('Le serán recomendadas 5 canciones para acompañar su estudio. \n')
+        print('La instrumentalidad se define como: Este valor representa la cantidad de instrumentalización en la canción. Toma valores entre 0 y 1. Entre más cerca de 1 más instrumental es la canción \n')
+        print('A continuación ingrese los valores de acuerdo a su preferencia en cuanto a la instumentalidad \n \n')
+        
+        instmin = input('Ingrese el valor mínimo de instrumentalidad: ')
+        instmax = input('Ingrese el valor máximo de instrumentalidad: ')
+        try: 
+            instmin = float(instmin)
+            instmax = float(instmax)
+            if instmin>= 0 and instmin<=1 and instmax>=0 and instmax<=1:
+                print('\n El Tempo se define como: la velocidad con la que debe ejecutarse una pieza musical')
+                print('A continuación ingrese los valores de acuerdo a su preferencia en cuanto al tempo.\n')
+               
+                tempmin = input('Ingrese el valor mínimo de tempo: ')
+                tempmax = input('Ingrese el valor máximo de tempo: ')
+                
+                tempmin = float(tempmin)
+                tempmax = float(tempmax)
+                if tempmin>=0 and tempmax>=0:
+                    
+                    ans = controller.getMestudiar(cont, instmin, instmax, tempmin, tempmax) 
+                    
+                else:
+                    print('\nSe ha producido un error.\n')
+            else:
+                print('\nSe ha producido un error.\n')
+                
+                    
+        except:
+            print('\nSe ha producido un error.\n')
+        
     elif int(inputs[0]) == 5:
         try:
             printGeneros()
@@ -122,7 +160,9 @@ while True:
         except:
             print('\nSe ha producido un error.\n')
     elif int(inputs[0]) == 6:
-        pass
+        hmin = input("Valor mínimo de la hora del día: ")
+        hmax = input('Valor máximo de la hora del día: ')
+        controller.getGenXtiempo(cont,  hmin, hmax)
     elif int(inputs[0]) == 7:
         controller.getdebug(cont)
     else:
